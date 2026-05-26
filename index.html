@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoodMuse — AI mood journal & reflection</title>
+<meta name="description" content="Write your mood, get a gentle, grounded reflection — patterns, possible causes, and one small action you could try today.">
+<style>
+:root {
+  --bg: #0e0a14;
+  --surface: #181222;
+  --surface-2: #221a30;
+  --border: #2a2a3a;
+  --text: #f5f5f7;
+  --text-dim: #a8a8b8;
+  --accent: #a78bfa;
+  --accent-2: #c084fc;
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --ok: #22c55e;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; min-height: 100vh; line-height: 1.6; }
+body { background: radial-gradient(ellipse at top, color-mix(in srgb, var(--accent) 12%, transparent) 0%, transparent 60%), var(--bg); }
+a { color: var(--accent-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+header { padding: 16px 0; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); background: color-mix(in srgb, var(--bg) 80%, transparent); }
+.header-row { display: flex; align-items: center; gap: 16px; }
+.brand { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.brand-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; place-items: center; font-size: 18px; }
+.brand-text { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.spacer { flex: 1; }
+.lang-switch { display: flex; gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.lang-btn { background: transparent; color: var(--text-dim); border: none; padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+.lang-btn.active { background: var(--accent); color: white; }
+.lang-btn:not(.active):hover { color: var(--text); }
+.btn { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; border: none; }
+.btn-primary:hover { color: white; opacity: 0.92; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-ghost { background: transparent; }
+main { padding: 40px 0 60px; }
+.hero { text-align: center; margin-bottom: 40px; }
+.hero h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 12px; }
+.gradient { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero p { font-size: 17px; color: var(--text-dim); max-width: 600px; margin: 0 auto; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+.panel-title { font-size: 13px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+label { display: block; font-size: 13px; font-weight: 600; color: var(--text-dim); margin-bottom: 6px; }
+input[type="text"], input[type="password"], input[type="number"], textarea, select { width: 100%; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit; transition: border-color 0.15s; }
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+textarea { resize: vertical; min-height: 100px; }
+textarea.code { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 13px; min-height: 220px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.row > * { flex: 1; min-width: 140px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.chip { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: 999px; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.result-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+.result-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; font-size: 14px; }
+.kv dt { color: var(--text-dim); }
+.kv dd { color: var(--text); }
+.tag { display: inline-block; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+.tag.danger { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+.tag.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.tag.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+ul.list { list-style: none; padding-left: 0; }
+ul.list li { position: relative; padding-left: 22px; margin-bottom: 6px; }
+ul.list li::before { content: "▸"; position: absolute; left: 0; color: var(--accent); }
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; place-items: center; z-index: 100; backdrop-filter: blur(4px); padding: 20px; }
+.modal-bg.show { display: grid; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal h2 { font-size: 20px; margin-bottom: 16px; }
+.field { margin-bottom: 14px; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--surface); border: 1px solid var(--border); padding: 12px 20px; border-radius: 10px; font-size: 14px; z-index: 200; transition: transform 0.3s, opacity 0.3s; opacity: 0; pointer-events: none; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.error { border-color: var(--danger); color: var(--danger); }
+.toast.ok { border-color: var(--ok); color: var(--ok); }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+.empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+footer { text-align: center; padding: 30px 20px; color: var(--text-dim); font-size: 13px; border-top: 1px solid var(--border); margin-top: 40px; }
+footer a { color: var(--accent-2); }
+.source-badge { display: inline-block; background: var(--surface-2); border: 1px solid var(--border); padding: 3px 10px; border-radius: 999px; font-size: 11px; color: var(--text-dim); margin-left: 8px; }
+.radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.radio-group label { background: var(--surface-2); border: 1px solid var(--border); padding: 8px 14px; border-radius: 8px; cursor: pointer; margin: 0; font-weight: 500; color: var(--text); transition: all 0.15s; }
+.radio-group input { display: none; }
+.radio-group input:checked + span { color: var(--accent); }
+.radio-group label:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; overflow-x: auto; font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 13px; color: var(--text); }
+code.inline { background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-family: ui-monospace, "SF Mono", monospace; font-size: 0.9em; color: var(--accent); }
+@media (max-width: 600px) { .hero h1 { font-size: 32px; } .panel { padding: 18px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap header-row">
+    <div class="brand">
+      <span class="brand-icon">🌸</span>
+      <span class="brand-text">MoodMuse</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="lang-switch" id="langSwitch">
+      <button class="lang-btn active" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="zh">中文</button>
+    </div>
+    <button class="btn btn-ghost" onclick="openSettings()" title="Settings">⚙</button>
+    <a class="btn btn-ghost" href="https://github.com/Fikrizz" target="_blank" rel="noopener" title="GitHub">★</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1 data-i18n="hero_title">Reflect on your <span class='gradient'>mood</span></h1>
+    <p data-i18n="hero_sub">A grounded mirror for your day. No toxic positivity, no crystal-shop nonsense.</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title" data-i18n="input_title">⌨ Input</div>
+    
+    <label data-i18n="lbl_mood">How do you feel right now?</label>
+    <div class="radio-group" id="moodGroup" style="margin-bottom:14px;">
+      <label><input type="radio" name="mood" value="happy"><span>😊 Happy</span></label>
+      <label><input type="radio" name="mood" value="content" checked><span>🙂 Content</span></label>
+      <label><input type="radio" name="mood" value="neutral"><span>😐 Neutral</span></label>
+      <label><input type="radio" name="mood" value="anxious"><span>😟 Anxious</span></label>
+      <label><input type="radio" name="mood" value="sad"><span>😔 Sad</span></label>
+      <label><input type="radio" name="mood" value="angry"><span>😤 Angry</span></label>
+      <label><input type="radio" name="mood" value="overwhelmed"><span>🤯 Overwhelmed</span></label>
+      <label><input type="radio" name="mood" value="tired"><span>😴 Tired</span></label>
+      <label><input type="radio" name="mood" value="lonely"><span>🫥 Lonely</span></label>
+    </div>
+    <label data-i18n="lbl_journal">What's on your mind? (anything goes)</label>
+    <textarea id="journal" rows="6" placeholder="Today felt heavy. I had a meeting that..." data-i18n-ph="ph_journal"></textarea>
+    <div class="row" style="margin-top:14px;">
+      <div><label data-i18n="lbl_intensity">Mood intensity (1-10)</label>
+        <input type="number" id="intensity" min="1" max="10" value="5">
+      </div>
+      <div><label data-i18n="lbl_tone">Reflection tone</label>
+        <select id="tone">
+          <option value="warm">Warm friend</option>
+          <option value="grounded" selected>Grounded therapist</option>
+          <option value="stoic">Stoic / Marcus Aurelius</option>
+          <option value="zen">Zen / Buddhist</option>
+          <option value="practical">Practical coach</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="actions">
+      <button class="btn btn-primary" id="generateBtn" onclick="run()">
+        <span data-i18n="action_run">🌸 Reflect</span>
+      </button>
+      <button class="btn" onclick="clearInput()" data-i18n="action_clear">Clear</button>
+    </div>
+  </section>
+
+  <section id="resultPanel" style="display:none;">
+    <div class="panel">
+      <div class="panel-title">
+        <span data-i18n="result_title">✨ Result</span>
+        <span id="sourceBadge" class="source-badge"></span>
+      </div>
+      <div id="result"></div>
+      <div class="actions">
+        <button class="btn" onclick="copyResult()" data-i18n="action_copy">📋 Copy</button>
+        <button class="btn" onclick="downloadResult()" data-i18n="action_download">⬇ Download</button>
+        <button class="btn" onclick="shareResult()" data-i18n="action_share">↗ Share</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="emptyState" class="empty">
+    <div class="empty-icon">🌸</div>
+    <p data-i18n="empty_hint">Write what's on your mind. Or pick a mood to start.</p>
+  </section>
+</main>
+
+<div class="modal-bg" id="settingsModal" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <h2 data-i18n="settings_title">⚙ Settings</h2>
+    <div class="field">
+      <label data-i18n="settings_apikey">MiMo API Key (optional, BYOK)</label>
+      <input type="password" id="apiKey" placeholder="leave empty for free demo">
+    </div>
+    <div class="field">
+      <label data-i18n="settings_model">Model</label>
+      <select id="model">
+        <option value="mimo-v2.5-reasoning">mimo-v2.5-reasoning (best quality)</option>
+        <option value="mimo-v2.5">mimo-v2.5 (faster)</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="testConnection()" data-i18n="settings_test">Test Connection</button>
+      <button class="btn btn-primary" onclick="saveSettings()" data-i18n="settings_save">Save</button>
+      <button class="btn" onclick="closeSettings()" data-i18n="settings_close">Close</button>
+    </div>
+    <p style="margin-top:14px;font-size:12px;color:var(--text-dim);">
+      <span data-i18n="settings_hint">Get a key at</span> <a href="https://api.xiaomimimo.com" target="_blank" rel="noopener">api.xiaomimimo.com</a>
+    </p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <p>
+    Made by <a href="https://github.com/Fikrizz" target="_blank" rel="noopener">@Fikrizz</a> ·
+    Powered by <a href="https://api.xiaomimimo.com" target="_blank" rel="noopener">Xiaomi MiMo</a> ·
+    Built for <a href="https://100t.xiaomimimo.com" target="_blank" rel="noopener">MiMo 100T Creator Program</a>
+  </p>
+</footer>
+
+<script>
+const STORAGE_KEY = 'moodmuse-settings';
+const ENDPOINTS = {
+  mimo: 'https://api.xiaomimimo.com/v1/chat/completions',
+  pollinations: 'https://text.pollinations.ai/openai'
+};
+
+const I18N = {"en": {"hero_title": "Reflect on your <span class='gradient'>mood</span>", "hero_sub": "A grounded mirror for your day. No toxic positivity, no crystal-shop nonsense.", "input_title": "🌸 Today's Entry", "result_title": "💭 Reflection", "action_run": "🌸 Reflect", "action_clear": "Clear", "action_copy": "📋 Copy", "action_download": "⬇ Save Entry", "action_share": "↗ Share", "empty_hint": "Write what's on your mind. Or pick a mood to start.", "settings_title": "⚙ Settings", "settings_apikey": "MiMo API Key (optional)", "settings_model": "Model", "settings_test": "Test Connection", "settings_save": "Save", "settings_close": "Close", "settings_hint": "Get a key at", "lbl_mood": "How do you feel right now?", "lbl_journal": "What's on your mind? (anything goes)", "lbl_intensity": "Mood intensity (1-10)", "lbl_tone": "Reflection tone", "ph_journal": "Today felt heavy. I had a meeting that..."}, "zh": {"hero_title": "审视你的<span class='gradient'>心情</span>", "hero_sub": "一面真诚的镜子，不灌鸡汤，不打鸡血。", "input_title": "🌸 今日记录", "result_title": "💭 反思", "action_run": "🌸 反思", "action_clear": "清空", "action_copy": "📋 复制", "action_download": "⬇ 保存", "action_share": "↗ 分享", "empty_hint": "写下你的想法，或选个心情开始。", "settings_title": "⚙ 设置", "settings_apikey": "MiMo API 密钥（可选）", "settings_model": "模型", "settings_test": "测试连接", "settings_save": "保存", "settings_close": "关闭", "settings_hint": "获取密钥：", "lbl_mood": "你现在感觉怎么样？", "lbl_journal": "想到什么写什么", "lbl_intensity": "情绪强度（1-10）", "lbl_tone": "反思风格", "ph_journal": "今天有点累，开会的时候..."}};
+
+let currentLang = localStorage.getItem(STORAGE_KEY + '-lang') || 'en';
+let lastResult = null;
+
+function applyLang(lang) {
+  currentLang = lang;
+  localStorage.setItem(STORAGE_KEY + '-lang', lang);
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (I18N[lang] && I18N[lang][key] !== undefined) {
+      el.innerHTML = I18N[lang][key];
+    }
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const key = el.dataset.i18nPh;
+    if (I18N[lang] && I18N[lang][key] !== undefined) {
+      el.placeholder = I18N[lang][key];
+    }
+  });
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+}
+
+document.getElementById('langSwitch').addEventListener('click', e => {
+  if (e.target.classList.contains('lang-btn')) applyLang(e.target.dataset.lang);
+});
+
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+}
+function saveSettings() {
+  const s = { apiKey: document.getElementById('apiKey').value.trim(), model: document.getElementById('model').value };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  toast(currentLang === 'zh' ? '✓ 设置已保存' : '✓ Settings saved', 'ok');
+  closeSettings();
+}
+function loadSettings() {
+  const s = getSettings();
+  if (s.apiKey) document.getElementById('apiKey').value = s.apiKey;
+  if (s.model) document.getElementById('model').value = s.model;
+}
+function openSettings() { loadSettings(); document.getElementById('settingsModal').classList.add('show'); }
+function closeSettings() { document.getElementById('settingsModal').classList.remove('show'); }
+
+async function testConnection() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { toast(currentLang === 'zh' ? '请先填写 API Key' : 'Enter API key first', 'error'); return; }
+  toast(currentLang === 'zh' ? '测试中...' : 'Testing...');
+  try {
+    const r = await fetch(ENDPOINTS.mimo, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ model: document.getElementById('model').value, messages: [{role:'user', content:'ping'}], max_tokens: 5 })
+    });
+    if (r.ok) toast(currentLang === 'zh' ? '✓ 连接成功' : '✓ Connection OK', 'ok');
+    else toast(currentLang === 'zh' ? '✗ 失败: ' + r.status : '✗ Failed: ' + r.status, 'error');
+  } catch (e) { toast('✗ ' + e.message, 'error'); }
+}
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.className = 'toast', 2400);
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function callAI(messages, opts) {
+  opts = opts || {};
+  const settings = getSettings();
+  if (settings.apiKey) {
+    try {
+      const r = await fetch(ENDPOINTS.mimo, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + settings.apiKey },
+        body: JSON.stringify({ model: settings.model || 'mimo-v2.5', messages, temperature: opts.temperature || 0.7, max_tokens: opts.maxTokens || 2400 })
+      });
+      if (r.ok) {
+        const d = await r.json();
+        return { text: d.choices[0].message.content, source: 'MiMo' };
+      }
+    } catch (e) { console.warn('MiMo failed:', e); }
+  }
+  try {
+    const r = await fetch(ENDPOINTS.pollinations, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'openai', messages, temperature: opts.temperature || 0.7 })
+    });
+    if (r.ok) {
+      const d = await r.json();
+      return { text: d.choices[0].message.content, source: 'Pollinations (demo)' };
+    }
+  } catch (e) { console.warn('Pollinations failed:', e); }
+  throw new Error(currentLang === 'zh' ? 'AI 服务不可用，请在设置中填写 API Key' : 'AI service unavailable. Set API key in Settings.');
+}
+
+function parseJSON(text) {
+  let s = text.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/, '');
+  const m = s.match(/\{[\s\S]*\}/);
+  if (m) s = m[0];
+  return JSON.parse(s);
+}
+
+function clearInput() {
+  document.querySelectorAll('input[type="text"], textarea').forEach(el => { if (!el.id || (el.id !== 'apiKey')) el.value = ''; });
+  document.getElementById('resultPanel').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'block';
+}
+
+function copyResult() {
+  if (!lastResult) return;
+  navigator.clipboard.writeText(typeof lastResult === 'string' ? lastResult : JSON.stringify(lastResult, null, 2));
+  toast(currentLang === 'zh' ? '✓ 已复制' : '✓ Copied', 'ok');
+}
+function downloadResult() {
+  if (!lastResult) return;
+  const text = typeof lastResult === 'string' ? lastResult : JSON.stringify(lastResult, null, 2);
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'moodmuse-' + Date.now() + '.txt';
+  a.click();
+}
+async function shareResult() {
+  if (!lastResult) return;
+  const text = typeof lastResult === 'string' ? lastResult : JSON.stringify(lastResult, null, 2);
+  if (navigator.share) {
+    try { await navigator.share({ title: 'MoodMuse', text: text.slice(0, 1000) }); } catch {}
+  } else {
+    copyResult();
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSettings();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
+});
+
+// app-specific code injected below
+
+async function run() {
+  const mood = document.querySelector('input[name=mood]:checked').value;
+  const journal = document.getElementById('journal').value.trim();
+  const intensity = parseInt(document.getElementById('intensity').value);
+  const tone = document.getElementById('tone').value;
+  if (!journal || journal.length < 10) { toast(currentLang === 'zh' ? '多写几句吧' : 'Write a bit more', 'error'); return; }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> ' + (currentLang === 'zh' ? '反思中...' : 'Reflecting...');
+
+  const toneMap = {
+    warm: 'Warm, supportive friend tone. Validate first, then gently explore.',
+    grounded: 'Grounded therapist. Curious questions. No toxic positivity. Acknowledge complexity.',
+    stoic: 'Stoic philosopher (Marcus Aurelius style). Discipline of perception. What is in your control?',
+    zen: 'Zen/Buddhist non-judgment. Sit with what is. Notice attachment. Light touch.',
+    practical: 'Practical coach. Identify the problem. Suggest one concrete next step.'
+  };
+
+  const sys = `You are a ${toneMap[tone]} ${tone === 'grounded' ? 'You are NOT a therapist replacement. If user mentions self-harm or crisis, gently point to 988/local crisis lines.' : ''} Output ONLY JSON. Keys: validation (string, 2-3 sentences acknowledging their feeling without minimizing), patterns_observed (array of strings, what stood out), possible_drivers (array of strings, possible underlying causes — gentle hypotheses, not diagnoses), reframe (string, one alternative way to look at this — earned, not forced), one_small_action (string, ONE small thing they could do today, not a whole self-care routine), question_to_sit_with (string, one open question), closing (string, brief warm sign-off). Respond in ${currentLang === 'zh' ? 'Chinese' : 'English'}.`;
+  const user = `Mood: ${mood} (intensity ${intensity}/10)\n\nJournal:\n${journal}`;
+
+  try {
+    const result = await callAI([{role:'system', content:sys}, {role:'user', content:user}], { temperature: 0.8 });
+    const data = parseJSON(result.text);
+    lastResult = data;
+    document.getElementById('sourceBadge').textContent = result.source;
+    renderResult(data);
+    document.getElementById('resultPanel').style.display = 'block';
+    document.getElementById('emptyState').style.display = 'none';
+  } catch (e) { toast(e.message, 'error'); }
+  finally { btn.disabled = false; btn.innerHTML = '<span data-i18n="action_run">' + I18N[currentLang].action_run + '</span>'; }
+}
+
+function renderResult(d) {
+  const r = document.getElementById('result');
+  let html = `<div class="result-card" style="border-left:4px solid var(--accent);"><h3>🤍 ${currentLang === 'zh' ? '看到你' : 'I hear you'}</h3><p>${escapeHtml(d.validation || '')}</p></div>`;
+  if (d.patterns_observed && d.patterns_observed.length) {
+    html += `<div class="result-card"><h3>🔍 ${currentLang === 'zh' ? '注意到的' : 'What I noticed'}</h3><ul class="list">${d.patterns_observed.map(p => '<li>' + escapeHtml(p) + '</li>').join('')}</ul></div>`;
+  }
+  if (d.possible_drivers && d.possible_drivers.length) {
+    html += `<div class="result-card"><h3>💧 ${currentLang === 'zh' ? '可能的原因' : 'Possible drivers'}</h3><ul class="list">${d.possible_drivers.map(p => '<li>' + escapeHtml(p) + '</li>').join('')}</ul></div>`;
+  }
+  if (d.reframe) {
+    html += `<div class="result-card"><h3>🔄 ${currentLang === 'zh' ? '换个角度' : 'A reframe'}</h3><p>${escapeHtml(d.reframe)}</p></div>`;
+  }
+  if (d.one_small_action) {
+    html += `<div class="result-card" style="background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent);"><h3>🌱 ${currentLang === 'zh' ? '今天的一小步' : 'One small action'}</h3><p>${escapeHtml(d.one_small_action)}</p></div>`;
+  }
+  if (d.question_to_sit_with) {
+    html += `<div class="result-card"><h3>❓ ${currentLang === 'zh' ? '坐着想想' : 'Sit with this'}</h3><p style="font-style:italic;">${escapeHtml(d.question_to_sit_with)}</p></div>`;
+  }
+  if (d.closing) {
+    html += `<div class="result-card" style="text-align:center;color:var(--text-dim);font-style:italic;"><p>${escapeHtml(d.closing)}</p></div>`;
+  }
+  r.innerHTML = html;
+}
+
+
+loadSettings();
+applyLang(currentLang);
+</script>
+</body>
+</html>
